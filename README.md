@@ -14,10 +14,8 @@ the numerical and/or combinatorial puzzle solvers should be easier;
 cryptic crosswords are likely to be on the research project scale.
 
 A curiosity, perhaps, is that the code is written in Algol 68,
-specifically the Algol 68 Genie implementation of Marcel van der Veer
-to be found at http://jmvdveer.home.xs4all.nl --- it runs on Windows,
-MacOS and Linux, at least.
-
+specifically the [Algol 68 Genie](http://jmvdveer.home.xs4all.nl)
+implementation of Marcel van der Veer.
 
 Have fun, and try out one of the most beautiful programming languages
 ever designed and implemented.
