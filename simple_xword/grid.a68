@@ -1,0 +1,270 @@
+COMMENT
+   Routines for reading, annotating and displaying a crossword diagram.
+COMMENT
+
+PROC read grid = (STRING grid file name, REF INTPAIR dimensions) REF SLIST :
+BEGIN
+
+   COMMENT
+      On input a grid must contain a rectangular array of "." and "*" characters.  On
+      output, width and height hold the dimensions of the grid and the PROC returns a
+      linked list of the lines of "."  and "#" characters.
+   COMMENT
+
+   FILE inf;
+   IF open (inf, grid file name, stand in channel) /= 0 THEN
+      put (stand error, ("Cannot open ", grid file name, newline));
+      stop
+   ELSE
+      on file end (inf, (REF FILE f) BOOL: (close (f); GOTO finished))
+   FI;
+
+   STRING row;
+   get (inf, (row, newline));
+   REF SLIST grid := HEAP SLIST := (row, NIL);
+   REF REF SLIST ptr := rest OF grid;
+   INT height := 1;
+   INT width := UPB row;
+
+   DO get (inf, (row, newline));
+      IF (UPB row /= width)
+      THEN
+	 put (stand error, ("Non-rectangular board", newline));
+         stop
+      ELSE height PLUSAB 1;
+         REF REF SLIST (ptr) := HEAP SLIST := (row, NIL);
+         ptr := rest OF ptr
+      FI
+   OD;
+finished:
+   dimensions := (height, width);
+   grid
+END;
+
+PROC grid to xword = (REF SLIST grid, REF [,]CELL xword, INTPAIR dimensions) INTPAIR :
+BEGIN
+
+   COMMENT
+      Given a grid as a linked list of STRINGS containing "." and "#", build a
+      2-dimensional array of CELLS where a "#" character is represented by a VOID and
+      "." by a CONTENT.  The BITS field of the latter contains 26 set bits,
+      indicating that as far as is yet known any letter is a potential candidate,
+      together with two flags indicating whether the CELL is the inital location of
+      an entry. The INT field is set to the clue number if the CELL is the intial
+      letter of a clue and to 0 otherwise.  Each STRING is already known to be width
+      CHARS long and there are height STRINGS in total.
+   COMMENT
+
+   INT height = first OF dimensions, width = second OF dimensions;
+   INT across := 0, down := 0;
+
+   REF SLIST ptr := grid;
+   FOR row TO height
+   DO
+      STRING s = s OF ptr;
+      FOR column TO width
+      DO
+         xword[row, column] := (s[column] = "#" | EMPTY | HEAP CONTENT := default content)
+      OD;
+      IF ptr ISNT NIL THEN ptr := rest OF ptr FI
+   OD;
+
+   PROC install clue = (INT row, column, clue, BITS a or d) VOID :
+   BEGIN
+      CASE xword[row, column] IN (REF CONTENT c) :
+      ( number OF c := clue; letters OF c ORAB a or d)
+      ESAC
+   END;
+
+   COMMENT
+      Treat edge rows and columns specially because they don't have a neigbouring
+      CELL on at least one side.
+   COMMENT
+
+   INT clue number := 0;
+   BOOL clueless := TRUE;
+
+   IF CELLP xword[1, 1] THEN
+      IF CELLP xword[1, 2] THEN
+	 clueless := FALSE; across PLUSAB 1;
+	 install clue (1, 1, clue number PLUSAB 1, across bit)
+      FI;
+
+      IF CELLP xword[2, 1] THEN
+	 ( clueless | clue number PLUSAB 1); down PLUSAB 1;
+	 install clue (1, 1, clue number, down bit)
+      FI
+   FI;
+
+   FOR column FROM 2 TO width - 1
+   DO
+      clueless := TRUE;
+      IF CELLP xword[1, column] THEN
+	 IF CELLP xword[1, column+1] AND NOT CELLP xword[1, column-1] THEN
+	    across PLUSAB 1;
+	    install clue (1, column, clue number PLUSAB 1, across bit)
+	 FI;
+
+	 IF CELLP xword[2, column] THEN
+	    ( clueless | clue number PLUSAB 1); down PLUSAB 1;
+	    install clue (1, column, clue number, down bit)
+	 FI
+      FI
+   OD;
+   IF CELLP xword[1, width] AND CELLP xword[2, width] THEN
+      down PLUSAB 1;
+      install clue (1, width, clue number PLUSAB 1, down bit)
+   FI;
+
+   FOR row FROM 2 TO height -1
+   DO
+      clueless := TRUE;
+      IF CELLP xword[row, 1] THEN
+	 IF CELLP xword[row, 2] THEN
+	    clueless := FALSE; across PLUSAB 1;
+	    install clue (row, 1, clue number PLUSAB 1, across bit)
+	 FI;
+	 IF CELLP xword[row+1, 1] AND NOT CELLP xword[row-1, 1] THEN
+	    ( clueless | clue number PLUSAB 1); down PLUSAB 1;
+	    install clue (row, 1, clue number, down bit)
+	 FI
+      FI;
+
+      FOR column FROM 2 TO width - 1
+      DO
+	 clueless := TRUE;
+	 IF CELLP xword[row, column] THEN
+	    IF CELLP xword[row, column+1] AND NOT CELLP xword[row, column-1] THEN
+	       clueless := FALSE; across PLUSAB 1;
+	       install clue (row, column, clue number PLUSAB 1, across bit)
+	    FI;
+	    IF CELLP xword[row+1, column] AND NOT CELLP xword[row-1, column] THEN
+	       ( clueless | clue number PLUSAB 1); down PLUSAB 1;
+	       install clue (row, column, clue number, down bit)
+	    FI
+	 FI
+      OD;
+
+      IF CELLP xword[row, width] AND NOT CELLP xword[row-1, width] THEN
+	 down PLUSAB 1;
+	 install clue (row, width, clue number PLUSAB 1, down bit)
+      FI
+   OD;
+
+   IF CELLP xword[height, 1] AND CELLP xword[height, 2] THEN
+      across PLUSAB 1;
+      install clue (height, 1, clue number PLUSAB 1, across bit)
+   FI;
+
+   FOR column FROM 2 TO width - 1
+   DO
+      IF CELLP xword[height, column] THEN
+	 IF CELLP xword[height, column+1] AND NOT CELLP xword[height, column-1] THEN
+	    across PLUSAB 1;
+	    install clue (height, column, clue number PLUSAB 1, across bit)
+	 FI
+      FI
+   OD;
+   (across, down)
+END;
+
+PROC bits to string = (BITS letter bits, INT start, finish) STRING :
+BEGIN
+   STRING result := "abcdefghijklmnopqrstuvwxyz";
+
+   FOR i FROM start TO finish
+   DO
+      IF NOT (i ELEM letter bits) THEN result[i] := " " FI
+   OD;
+   result[start:finish]
+END;
+
+PROC display xword = (REF [,]CELL xword) VOID :
+BEGIN
+
+   PROC print top = (INT width) VOID:
+   BEGIN
+      print ("|");				# Left side bar. #
+      TO width-1 DO print ("----------") OD;	# Ten copies. #
+      print (("---------|", newline))		# Nine copies and right side bar. #
+   END;
+
+   PROC print row of cells = ([]CELL cell) VOID :
+   BEGIN
+      STRING letters;
+      FOR row TO UPB cell
+      DO
+	 CASE cell[row] IN
+	 (VOID) :
+	 print ("|#########"),
+	 (REF CONTENT c) :
+	 printf (($azzzxxxxxx$, "|", number OF c ))			# Top line of five #
+         ESAC
+      OD;
+      print (("|", newline));
+
+      FOR row TO UPB cell
+      DO
+	 CASE cell[row] IN
+	 (VOID) :
+	 print ("|#########"),
+	 (REF CONTENT c) :
+	 BEGIN
+	    print (("|    ", bits to string (letters OF c, 1, 5)))	# Second of five #
+	 END
+         ESAC
+      OD;
+      print (("|", newline));
+
+      FOR row TO UPB cell
+      DO
+	 CASE cell[row] IN
+	 (VOID) :
+	 print ("|#########"),
+	 (REF CONTENT c) :
+	 BEGIN
+	    print (("|  ", bits to string (letters OF c, 6, 12)))	# Third of five #
+	 END
+         ESAC
+      OD;
+      print (("|", newline))
+;
+      FOR row TO UPB cell
+      DO
+	 CASE cell[row] IN
+	 (VOID) :
+	 print ("|#########"),
+	 (REF CONTENT c) :
+	 BEGIN
+	    print (("|  ", bits to string (letters OF c, 13, 19)))	# Fourth of five #
+	 END
+         ESAC
+      OD;
+      print (("|", newline));
+
+      FOR row TO UPB cell
+      DO
+	 CASE cell[row] IN
+	 (VOID) :
+	 print ("|#########"),
+	 (REF CONTENT c) :
+	 BEGIN
+	    print (("|  ", bits to string (letters OF c, 20, 26)))	# Fifth of five #
+	 END
+         ESAC
+      OD;
+      print (("|", newline))
+   END;
+
+   INT height = 1 UPB xword;
+   INT width = 2 UPB xword;
+
+   FOR row TO height -1
+   DO
+      print top (width);
+      print row of cells (xword[row,])
+   OD;
+   print top (width);
+   print row of cells (xword[height,]);
+   print top (width)
+END;

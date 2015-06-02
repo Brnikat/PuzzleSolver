@@ -1,0 +1,20 @@
+COMMENT
+   MODE and OP declarations.
+COMMENT
+
+MODE INTPAIR = STRUCT (INT first, second);
+MODE SLIST = STRUCT (STRING s, REF SLIST rest);
+MODE CONTENT = STRUCT (INT number, BITS letters);
+MODE CELL = UNION (VOID, REF CONTENT);
+MODE CLUE = STRUCT (INT number, row, column, length, STRING text, given length, SLIST answers);
+
+OP CELLP = (CELL c) BOOL : ( (c | (VOID): FALSE, (REF CONTENT): TRUE) );
+
+OP ORAB = (REF BITS a, BITS b) REF BITS : (a := a OR b);
+PRIO ORAB = 1;
+
+
+ASSERT (bits width >= 28);
+CONTENT default content = (0, 16rffffffc0);	# No clue number and 26 set bits #
+BITS across bit = 16r00000001;		# Flag initial CELL of an across entry. #
+BITS down bit   = 16r00000002;		# Flag initial CELL of a down entry. #

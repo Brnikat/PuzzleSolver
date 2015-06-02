@@ -1,0 +1,164 @@
+COMMENT
+   Routines for mechanical handling of clues.  Solving them will be
+   dealt with elsewhere.
+COMMENT
+
+PROC strtoi = (STRING s) INT :
+BEGIN
+   INT val := 0;
+   FOR i TO UPB s
+   DO
+      val TIMESAB 10;
+      val PLUSAB ABS s[i] - ABS "0"
+   OD;
+   val
+END;
+
+PROC locate clues = ([,]CELL xword, REF []CLUE across, down) VOID :
+BEGIN
+
+COMMENT
+
+   Scan through xword looking for the beginning and end of each clue
+   type, filling in across and down with their locations and lengths.
+   We don't yet know what each clue is nor what answers may be
+   permissible so put in a place holder.
+
+COMMENT
+
+   INT current across := 0, current down := 0;
+   INT width = 1 UPB xword, height = 2UPB xword;
+   FOR row TO width
+   DO
+      FOR column TO height
+      DO
+	 CASE xword[row, column] IN (REF CONTENT c) :
+	 BEGIN
+	    IF ABS (across bit AND letters OF c) > 0 THEN
+	    INT length := 2;					# Initial cell and this one #
+	       WHILE column + length <= width
+	       DO
+		  CASE xword[row, column + length] IN
+		  (REF CONTENT ) : length PLUSAB 1,
+		  (VOID) : GOTO found across width
+		  ESAC
+	       OD;
+	    found across width:
+	       across[current across PLUSAB 1] := (number OF c, row, column, length, "", "", ("", NIL))
+	    FI;
+	    IF ABS (down bit AND letters OF c) > 0 THEN
+	    INT length := 1;					# Initial cell and this one #
+	       WHILE row + length <= width
+	       DO
+		  CASE xword[row + length, column] IN
+		  (REF CONTENT ) : length PLUSAB 1,
+		  (VOID) : GOTO found down width
+		  ESAC
+	       OD;
+	    found down width:
+	       down[current down PLUSAB 1] := (number OF c, row, column, length, "", "", ("", NIL))
+	    FI
+	 END
+	 ESAC
+      OD
+   OD
+END;
+
+PROC install clue = (REF [] CLUE clue, INT element, number, STRING text, given length) VOID :
+BEGIN
+
+# Sanity clause #
+
+   IF number OF clue[element] /= number THEN
+      BEGIN
+	 printf (($"In '", zdxgx, "(", g, ")', given clue number is", xzdx, "but diagram has", xzdl$,
+		  element, text, given length, number, number OF clue[element]));
+	 stop
+      END
+   FI;
+
+   COMMENT
+   Verfiy given length is the same as the diagram length
+   COMMENT
+
+   text OF (clue[element]) := text;
+   given length OF (clue[element]) := given length
+END;
+
+PROC read clues = (STRING clue file name, REF []CLUE across, down) VOID :
+BEGIN
+
+   COMMENT
+
+   COMMENT
+
+   FILE inf;
+   IF open (inf, clue file name, stand in channel) /= 0 THEN
+      put (stand error, ("Cannot open ", clue file name, newline));
+      stop
+   ELSE
+      on file end (inf, (REF FILE f) BOOL: (close (f); GOTO finished))
+   FI;
+
+   STRING line, length;
+   INT start, end;
+   INT aclue := 0, dclue := 0;
+   BOOL across clues;				# Leave undefined to ensure that "Across" is found. #
+   DO
+      get (inf, (line, newline));
+      WHILE (sub in string ("^[[:space:]]+", "", line); line = "")
+      DO
+	 get (inf, (line, newline))			# Only white space, read another line. #
+      OD;
+      sub in string ("[[:space:]]+$", "", line);	# Trim terminal whitespace. #
+
+      IF line = "across" OR line = "Across" OR line = "ACROSS" THEN
+	 across clues := TRUE;
+	 GOTO get next line
+      ELIF line = "down" OR line = "Down" OR line = "DOWN" THEN
+	 across clues := FALSE;
+	 GOTO get next line
+      FI;
+
+COMMENT
+
+   At this point the line should contain a clue number, whitespace,
+   the clue itself, whitespace and a bracketted length.
+
+COMMENT
+
+      CASE 1 + grep in string ("[[:digit:]]+", line, start, end) IN
+      BEGIN
+	 INT clue number := strtoi (line[start : end]);
+	 line := line [end+1:];
+	 IF grep in string ("\([^[:space:]]+\)$", line, start, end) = 0 THEN
+	    length := line[start+1 : end-1];		# Omit brackets. #
+	    line := line[ : start-1];			# Omit length. #
+	    sub in string ("^[[:space:]]+", "", line);	# Trim leading whitespace. #
+	    sub in string ("[[:space:]]+$", "", line);	# Trim terminal whitespace. #
+	    IF across clues THEN
+	       install clue (across, aclue PLUSAB 1, clue number, line, length)
+	    ELSE
+	       install clue (down, dclue PLUSAB 1, clue number, line, length)
+	    FI
+	 ELSE
+	    print (("Can't find length in '", line, "'.", newline));
+	    stop
+	 FI
+      END,
+      BEGIN
+	 print (("Can't find clue number in '", line, "'.", newline));
+	 stop
+      END,
+      (print (("Out of cheese error.", newline)); stop),
+      (print (("WTF?", newline)); stop)
+      OUT
+      abend ("This can't happen! '" + line + "'")
+      ESAC;
+
+get next line:
+      SKIP
+   OD;
+finished:
+   SKIP
+END;

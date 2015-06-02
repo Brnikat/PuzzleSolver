@@ -1,0 +1,57 @@
+BEGIN
+
+   PR include "modes.a68" PR
+   PR include "grid.a68" PR
+   PR include "clues.a68" PR
+
+   INTPAIR h and w;
+
+COMMENT
+
+   Read a diagram of the grid from the file "grid".  We don't know
+   ahead of time what the grid's dimensions will be so the diagram is
+   return as a linked list of STRINGS and the dimensions are returned
+   as an INTPAIR.
+
+COMMENT
+
+# The filename "grid" on the next line really ought to be given by
+  argv but that's currently too painful ... #
+
+   REF SLIST grid := read grid ("grid", h and w);
+   [first OF h and w, second OF h and w] CELL xword;
+
+# Convert the diagram to a 2-d array of CELLS and return the number of clues of each type #
+
+   INTPAIR clues := grid to xword (grid, xword, h and w);
+
+# and display what we've found. #
+
+   display xword (xword);
+
+# Now add the clues #
+
+   [first OF clues] CLUE across clues;
+   [second OF clues] CLUE down clues;
+   locate clues (xword, across clues, down clues);
+
+# The filename "clues" on the next line really ought to be given by
+  argv but that's currently too painful ... #
+
+   read clues ("clues", across clues, down clues);
+
+   print ((newline, "Across", newline));
+   FOR i TO UPB across clues
+   DO
+      printf (($3zdxgx, "(", g, ")  [", zd, "]", l$,
+	       number OF across clues[i], text OF across clues[i],
+	       given length OF across clues[i], length OF across clues[i]))
+   OD;
+   print ((newline, "Down", newline));
+   FOR i TO UPB down clues
+   DO
+      printf (($3zdxgx, "(", g, ")  [", zd, "]", l$,
+	       number OF down clues[i], text OF down clues[i],
+	       given length OF down clues[i], length OF down clues[i]))
+   OD
+END

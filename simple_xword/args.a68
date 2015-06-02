@@ -1,0 +1,7 @@
+BEGIN
+   print (("argc =", argc, " ", newline));
+   FOR k  FROM 0 TO argc
+   DO
+      print (("argv(", k, ") = '", argv(k), "'", newline))
+   OD
+END
