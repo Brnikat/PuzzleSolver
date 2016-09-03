@@ -1,0 +1,53 @@
+PR storage=8 PR
+
+BEGIN
+   OP &:= = (REF BOOL v, BOOL b) REF BOOL : v := v & b;
+   PRIO &:= = 1;
+
+   PROC isomorphic = (STRING s, STRING p) BOOL :   CO Is s isomorphic to the pattern given in p? CO
+   BEGIN
+      BOOL retval := UPB s = UPB p;
+      IF retval THEN			CO Must be same length to be isomorphic CO
+	 [0:128]CHAR maps, mapp;
+	 FOR i TO 128 DO maps[i] := mapp[i] := REPR 0 OD;
+	 FOR i TO UPB p WHILE retval
+	 DO
+	    CHAR pchar = p[i], schar = s[i];
+	    INT pcode = ABS pchar, scode = ABS schar;
+	    IF ABS mapp[pcode] = 0 THEN
+	       IF retval &:= ABS maps[scode] = 0 THEN (mapp[pcode] := schar; maps[scode] := pchar) FI
+	    FI;
+	    retval &:= mapp[pcode] = schar & maps[scode] = pchar
+	 OD
+      FI;
+      retval
+   END;
+
+   FILE input file;
+   IF open (input file, a68g argv(2), standin channel) /= 0 THEN
+      print (("Cannot open ", a68g argv(2), newline)); stop
+   FI;
+
+   INT num lengths;
+   get (input file, num lengths);
+   [num lengths] REF [][]CHAR lex;
+   FOR i TO num lengths
+   DO
+      INT num words;
+      get (input file, num words);
+      HEAP [num words][i]CHAR words;
+      lex[i] := words;
+      FOR i TO num words DO get (input file, (words[i], newline)) OD
+   OD;
+
+   STRING whatsit = "2469a912b";
+   INT len = UPB whatsit;
+   [] STRING l = lex[len];
+   FOR i TO UPB l
+   DO
+      STRING foo = l[i];
+      IF isomorphic (whatsit, foo) THEN
+	 print ((foo, newline))
+      FI
+   OD
+END
