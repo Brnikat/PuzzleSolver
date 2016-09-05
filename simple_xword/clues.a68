@@ -44,7 +44,7 @@ COMMENT
 		  ESAC
 	       OD;
 	    found across width:
-	       across[current across PLUSAB 1] := (number OF c, row, column, length, "", "", ("", NIL))
+	       across[current across PLUSAB 1] := (number OF c, row, column, length, "", "", HEAP SLIST)
 	    FI;
 	    IF ABS (down bit AND letters OF c) > 0 THEN
 	    INT length := 1;					# Initial cell and this one #
@@ -56,7 +56,7 @@ COMMENT
 		  ESAC
 	       OD;
 	    found down width:
-	       down[current down PLUSAB 1] := (number OF c, row, column, length, "", "", ("", NIL))
+	       down[current down PLUSAB 1] := (number OF c, row, column, length, "", "", HEAP SLIST)
 	    FI
 	 END
 	 ESAC

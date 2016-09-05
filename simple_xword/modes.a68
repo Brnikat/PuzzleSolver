@@ -6,13 +6,17 @@ MODE INTPAIR = STRUCT (INT first, second);
 MODE SLIST = STRUCT (STRING s, REF SLIST rest);
 MODE CONTENT = STRUCT (INT number, BITS letters);
 MODE CELL = UNION (VOID, REF CONTENT);
-MODE CLUE = STRUCT (INT number, row, column, length, STRING text, given length, SLIST answers);
+MODE CLUE = STRUCT (INT number, row, column, length, STRING text, given length, REF SLIST answers);
 
 OP CELLP = (CELL c) BOOL : ( (c | (VOID): FALSE, (REF CONTENT): TRUE) );
 
 OP ORAB = (REF BITS a, BITS b) REF BITS : (a := a OR b);
 PRIO ORAB = 1;
 
+OP MAX = (INT a, b) INT : (a>b|a|b);
+PRIO MAX = 9;
+OP MIN = (INT a, b) INT : (a<b|a|b);
+PRIO MIN = 9;
 
 ASSERT (bits width >= 28);
 CONTENT default content = (0, 16rffffffc0);	# No clue number and 26 set bits #

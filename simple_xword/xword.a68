@@ -3,6 +3,7 @@ BEGIN
    PR include "modes.a68" PR
    PR include "grid.a68" PR
    PR include "clues.a68" PR
+   PR include "words.a68" PR
 
    INTPAIR h and w;
 
@@ -40,9 +41,13 @@ COMMENT
 
    read clues ("clues", across clues, down clues);
 
+   [(first OF h and w) MAX (second OF h and w)] BOOL word lengths used;
+   FOR i TO UPB word lengths used DO word lengths used[i] := FALSE OD;
+   
    print ((newline, "Across", newline));
    FOR i TO UPB across clues
    DO
+      word lengths used[length OF across clues[i]] := TRUE;
       printf (($3zdxgx, "(", g, ")  [", zd, "]", l$,
 	       number OF across clues[i], text OF across clues[i],
 	       given length OF across clues[i], length OF across clues[i]))
@@ -50,8 +55,23 @@ COMMENT
    print ((newline, "Down", newline));
    FOR i TO UPB down clues
    DO
+      word lengths used[length OF down clues[i]] := TRUE;
       printf (($3zdxgx, "(", g, ")  [", zd, "]", l$,
 	       number OF down clues[i], text OF down clues[i],
 	       given length OF down clues[i], length OF down clues[i]))
-   OD
+   OD;
+   
+   [UPB word lengths used] REF SLIST words;
+   FOR i TO UPB words DO words[i] := HEAP SLIST := ("", NIL) OD;	# Initialization dummies #
+   read lexicons (words, word lengths used);
+
+   FOR i TO UPB words
+   DO
+      IF word lengths used [i] THEN words[i] := rest OF words[i] FI	# Remove dummies #
+   OD;
+
+   install clue answers (across clues, down clues, words);
+
+   
+   SKIP
 END
