@@ -1,0 +1,23 @@
+CO Some operators which perhaps should be part of the standard prelude. CO
+
+OP ANDAB = (REF BOOL v, BOOL b) REF BOOL : v := v AND b;
+OP ANDAB = (REF BITS v, BITS b) REF BITS : v := v AND b;
+PRIO ANDAB = 1;
+
+OP ORAB = (REF BOOL v, BOOL b) REF BOOL : v := v OR b;
+OP ORAB = (REF BITS v, BITS b) REF BITS : v := v OR b;
+PRIO ORAB = 1;
+
+OP XORAB = (REF BOOL v, BOOL b) REF BOOL : v := v XOR b;
+OP XORAB = (REF BITS v, BITS b) REF BITS : v := v XOR b;
+PRIO XORAB = 1;
+
+OP SHLAB = (REF BITS v, INT s) REF BITS : v := v SHL s;
+PRIO SHLAB = 1;
+OP UPAB = (REF BITS v, INT s) REF BITS : v := v UP s;
+PRIO UPAB = 1;
+
+OP SHRAB = (REF BITS v, INT s) REF BITS : v := v SHR s;
+PRIO SHRAB = 1;
+OP DOWNAB = (REF BITS v, INT s) REF BITS : v := v DOWN s;
+PRIO DOWNAB = 1;
