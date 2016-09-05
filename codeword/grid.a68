@@ -1,0 +1,22 @@
+CO Routines for reading a codeword grid CO
+
+PROC read_grid = (FILE f) [,]CHAR :
+BEGIN
+   INT height, width;
+   read ((height, width, newline));
+   [height,width]CHAR grid;
+   FOR r TO height
+   DO
+      FOR c TO width
+      DO
+	 INT value;
+	 readf (($gx$, value));
+	 grid[r,c] := ".ABCDEFGHIJKLMNOPQRSTUVWXYZ"[@0][value]
+      OD;
+      read (newline)
+   OD;
+
+   FOR r TO HEIGHT DO print ((grid[r,], newline)) OD
+
+   
+END
